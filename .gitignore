@@ -1,0 +1,28 @@
+# Dependencies
+backend/vendor/
+frontend/node_modules/
+frontend/dist/
+
+# Environment files
+backend/.env
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PHP
+*.log
+backend/storage/logs/
+
+# Angular build cache
+frontend/.angular/
+
+# Docker volumes
+mysql_data/

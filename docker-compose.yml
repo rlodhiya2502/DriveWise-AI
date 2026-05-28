@@ -1,0 +1,83 @@
+version: '3.9'
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # MySQL Database
+  # ─────────────────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: drivewise_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootsecret
+      MYSQL_DATABASE: drivewise
+      MYSQL_USER: drivewise
+      MYSQL_PASSWORD: secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/migrations/001_create_tables.sql:/docker-entrypoint-initdb.d/001_create_tables.sql
+      - ./database/seeds/002_seed_data.sql:/docker-entrypoint-initdb.d/002_seed_data.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "drivewise", "-psecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PHP-FPM (FlightPHP backend)
+  # ─────────────────────────────────────────────────────────────────────────────
+  php:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: drivewise_php
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      APP_ENV: production
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: drivewise
+      DB_USERNAME: drivewise
+      DB_PASSWORD: secret
+    env_file:
+      - ./backend/.env
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Nginx (reverse proxy for PHP backend)
+  # ─────────────────────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: drivewise_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www/html
+      - ./backend/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Angular Frontend
+  # ─────────────────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: drivewise_frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      - nginx
+
+volumes:
+  mysql_data:
