@@ -102,7 +102,7 @@ class NotificationService
             CURLOPT_POSTFIELDS     => $payload,
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
-                "Authorization: ******",
+                'Authorization: Bearer ' . $this->apiKey,
             ],
             CURLOPT_TIMEOUT        => 10,
         ]);
